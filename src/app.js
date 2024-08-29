@@ -2,7 +2,7 @@ const express = require('express');
 const cheerio = require('cheerio');
 const axios = require('axios');
 
-const app = express();
+const server = express();
 
 const PORT = process.env.PORT || 3000;
 
@@ -32,7 +32,7 @@ try {
         });
       });
 
-      app.get('/', (req, res) => {
+      server.get('/', (req, res) => {
         res.status(200).json(content);
       });
 
@@ -44,6 +44,4 @@ try {
   console.log(error, error.message);
 }
 
-app.listen(PORT, () => {
-  console.log(`server is running on PORT:${PORT}`);
-});
+module.exports = server;

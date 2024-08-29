@@ -6,44 +6,39 @@ const server = express();
 
 const PORT = process.env.PORT || 3000;
 
-const website = 'https://amazon.es/dp/B07M98CL6Y/';
 
-try {
 
-  async function scraper() {
-    await axios(website).then((res) => {
-      const data = res.data;
-      const $ = cheerio.load(data);
-      console.log("valor de cherio" + $)
-      let content = [];
+server.get('/:id', async (req, res) => {
+  const cp=req.params.id
+  const website = `https://amazon.es/dp/${cp}/`;
+  try {
+    const { data } = await axios.get(website, { timeout: 20000 }); // Configura un timeout de 10 segundos
+    const $ = cheerio.load(data);
 
-      $('.a-size-large', data).each(function () {
-        const title = $(this).text();
-        const url = $(this).find('a').attr('href');
-        content.push({
-          title,
-        });
-      });
+    let content = [];
 
-      $('.a-list-item', data).each(function () {
-        const features = $(this).text();
-        content.push({
-          features,
-        });
-      });
+    // Selector optimizado para capturar el título
+    const title = $('#productTitle').text().trim();
+    if (title) {
+      content.push({ title });
+    }
 
-      server.get('/', (req, res) => {
-        res.status(200).json(content);
-      });
-
+    // Selector optimizado para capturar las características
+    $('#feature-bullets .a-list-item').each(function () {
+      const feature = $(this).text().trim();
+      if (feature) {
+        content.push({ feature });
+      }
     });
+
+    res.status(200).json(content);
+
+  } catch (error) {
+    console.error('Error al hacer scraping:', error.message);
+    res.status(500).json({ error: 'Hubo un problema al obtener los datos.' });
   }
+});
 
-  scraper();
-} catch (error) {
-  console.log(error, error.message);
-}
-
-server.listen(3000, () => {
-  console.log('%s listening at 3000'); // eslint-disable-line no-console
+server.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });

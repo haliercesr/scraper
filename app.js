@@ -14,7 +14,7 @@ try {
     await axios(website).then((res) => {
       const data = res.data;
       const $ = cheerio.load(data);
-      console.log("valor de cherio"+$)
+      console.log("valor de cherio" + $)
       let content = [];
 
       $('.a-size-large', data).each(function () {
@@ -44,4 +44,6 @@ try {
   console.log(error, error.message);
 }
 
-module.exports = server;
+server.listen(3000, () => {
+  console.log('%s listening at 3000'); // eslint-disable-line no-console
+});

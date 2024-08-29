@@ -5,14 +5,12 @@ const axios = require('axios');
 const server = express();
 
 const PORT = process.env.PORT || 3000;
+const maxRetries = 5; // Número máximo de reintentos
 
-
-
-server.get('/:id', async (req, res) => {
-  const cp=req.params.id
-  const website = `https://amazon.es/dp/${cp}/`;
+// Función para hacer scraping con reintento
+async function scraper(website,retries = 0) {
   try {
-    const { data } = await axios.get(website, { timeout: 20000 }); // Configura un timeout de 10 segundos
+    const { data } = await axios.get(website, { timeout: 10000 }); // Configura un timeout de 10 segundos
     const $ = cheerio.load(data);
 
     let content = [];
@@ -31,14 +29,31 @@ server.get('/:id', async (req, res) => {
       }
     });
 
-    res.status(200).json(content);
+    return content;
 
   } catch (error) {
+    if (retries < maxRetries) {
+      console.log(`Reintentando... (${retries + 1}/${maxRetries})`);
+      return scraper(retries + 1); // Reintentar la función
+    } else {
+      throw new Error('Error al hacer scraping después de varios intentos.');
+    }
+  }
+}
+
+server.get('/:id', async (req, res) => {
+  try {
+    const cp=req.params.id
+    const website = `https://amazon.es/dp/${cp}/`;
+    const content = await scraper(website);
+    res.status(200).json(content);
+  } catch (error) {
     console.error('Error al hacer scraping:', error.message);
-    res.status(500).json({ error: 'Hubo un problema al obtener los datos.' });
+    res.status(500).json({ error: 'Hubo un problema al obtener los datos después de varios intentos.' });
   }
 });
 
 server.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
+

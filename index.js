@@ -10,7 +10,7 @@ const maxRetries = 5; // Número máximo de reintentos
 // Función para hacer scraping con reintento
 async function scraper(website,retries = 0) {
   try {
-    const { data } = await axios.get(website, { timeout: 10000 }); // Configura un timeout de 10 segundos
+    const { data } = await axios.get(website, { timeout: 20000 }); // Configura un timeout de 10 segundos
     const $ = cheerio.load(data);
 
     let content = [];

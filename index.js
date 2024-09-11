@@ -1,6 +1,9 @@
 const express = require('express');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const logger = require('morgan');
+const cors = require('cors');
+
 function userAgentsfunction() {
   const headersArray = [
     {
@@ -268,6 +271,9 @@ function userAgentsfunction() {
 }
 const server = express();
 
+server.use(cors())
+server.use(logger('dev'));
+
 const PORT = process.env.PORT || 3000;
 const maxRetries = 5; // Número máximo de reintentos
 
@@ -275,80 +281,87 @@ const maxRetries = 5; // Número máximo de reintentos
 async function scraper(website, retries = 0) {
   const headers = userAgentsfunction();
   try {
-    const { data } = await axios.get(website, { headers, timeout: 10000 }); // Configura un header y un timeout de 5 segundos
+    const { data } = await axios.get(website, { headers, timeout: 20000 }); // Configura un header y un timeout de 5 segundos
     const $ = cheerio.load(data);
 
-    let content = [];
+    let content = {
+      title: "",
+      features: [],
+      information: [],
+      contentbox: [],
+      details: [],
+      reviews: [],
+      images: []
+    };
 
     // Selector optimizado para capturar el título
     const title = $('#productTitle').text().trim();
     if (title) {
-      content.push({ title });
+      content.title = title;
     }
 
     // Selector optimizado para capturar las características
     $('#feature-bullets .a-list-item').each(function () {
       const feature = $(this).text().trim();
       if (feature) {
-        content.push({ feature });
+        content.features.push(feature);
       }
     });
     // Selector para capturar texto del div con clase aplus-v2 desktop celwidget
     $('#aplus .a-spacing-mini').each(function () {
       const aplusText = $(this).text().trim();
       if (aplusText) {
-        content.push({ type: 'more-information', text: aplusText });
+        content.information.push(aplusText);
       }
     });
     $('#aplus .a-spacing-base').each(function () {
       const aplusText = $(this).text().trim();
       if (aplusText) {
-        content.push({ type: 'more-information', text: aplusText });
+        content.information.push(aplusText);
       }
     });
     $('#aplus p').each(function () {
       const aplusText = $(this).text().trim();
       if (aplusText) {
-        content.push({ type: 'more-information', text: aplusText });
+        content.information.push(aplusText);
       }
     });
     // Selector para capturar detalles del producto
     $('#detailBullets_feature_div .a-list-item span').each(function () {
       const detailsText = $(this).text().trim();
       if (detailsText) {
-        content.push({ type: 'details-product', text: detailsText });
+        content.details.push(detailsText);
       }
     });
     // Selector para capturar contenido de la caja
     $('#witb-content-list span').each(function () {
       const contentBoxText = $(this).text().trim();
       if (contentBoxText) {
-        content.push({ type: 'content-box', text: contentBoxText });
+        content.contentbox.push(contentBoxText);
       }
     });
-     // Selector para capturar reviews
-     $('#cm-cr-dp-review-list .a-expander-content span').each(function () {
+    // Selector para capturar reviews
+    $('#cm-cr-dp-review-list .a-expander-content span').each(function () {
       const reviewText = $(this).text().trim();
       if (reviewText) {
-        content.push({ type: 'reviews-product', text: reviewText });
+        content.reviews.push(reviewText);
       }
     });
     // Selector para capturar las URLs de las imágenes
-    const imageElement = $('#landingImage');
-    const imageData = imageElement.attr('data-a-dynamic-image');
+    const images = [];
 
-    if (imageData) {
-      try {
-        // Parsear el atributo data-a-dynamic-image para obtener las URLs
-        const imageUrls = JSON.parse(imageData);
-        const imageUrlsArray = Object.keys(imageUrls); // Obtiene las URLs de las imágenes
-
-        // Agregar URLs de las imágenes al contenido
-        content.push({ images: imageUrlsArray });
-      } catch (error) {
-        console.error('Error parsing image data:', error);
+    const scriptContent = $('script:contains("colorImages")').html();
+    if (scriptContent) {
+      const matches = scriptContent.match(/"hiRes":"(https:\/\/[^"]+)"/g);
+      if (matches) {
+        matches.forEach(match => {
+          const hiResUrl = match.split('"')[3];
+          if (!images.includes(hiResUrl)) images.push(hiResUrl);
+        });
       }
     }
+    // Agregar URLs de las imágenes al contenido
+    content.images= images;
 
     return content;
 

@@ -265,7 +265,17 @@ function userAgentsfunction() {
   ]
 
   // select a random header from the list
- // const header = headersArray[Math.floor(Math.random() * headersArray.length)];
+  const header = headersArray[Math.floor(Math.random() * headersArray.length)];
+
+  return header
+}
+const server = express();
+
+server.use(cors())
+server.use(logger('dev'));
+
+const PORT = process.env.PORT || 3000;
+const maxRetries = 5; // Número máximo de reintentos
 function generateHeaders() {
   const chromeVersions = ['91', '92', '93', '94', '95'];
   const randomChromeVersion = chromeVersions[Math.floor(Math.random() * chromeVersions.length)];
@@ -290,24 +300,9 @@ function generateHeaders() {
   };
 }
 
-// Uso:
-const headers = generateHeaders();
-
-  
-
-  return headers
-}
-const server = express();
-
-server.use(cors())
-server.use(logger('dev'));
-
-const PORT = process.env.PORT || 3000;
-const maxRetries = 5; // Número máximo de reintentos
-
 // Función para hacer scraping con reintento
 async function scraper(website, retries = 0) {
-  const headers = userAgentsfunction();
+  const headers = generateHeaders();
   try {
     const { data } = await axios.get(website, { headers, timeout: 20000 }); // Configura un header y un timeout de 5 segundos
     const $ = cheerio.load(data);

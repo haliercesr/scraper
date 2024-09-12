@@ -366,8 +366,13 @@ async function scraper(website, retries = 0) {
     return content;
 
   } catch (error) {
-    console.log(error.message)
-    return error
+    if (retries < maxRetries) {
+      console.log(`Intento ${retries + 1} fallido. Reintentando...`);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2 segundos antes de reintentar
+      return scraper(website, retries + 1);
+    }
+    console.log(error.message);
+    throw error;
   }
 }
 

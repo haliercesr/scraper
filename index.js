@@ -277,11 +277,16 @@ server.use(logger('dev'));
 const PORT = process.env.PORT || 3000;
 const maxRetries = 5; // Número máximo de reintentos
 
+
+
 // Función para hacer scraping con reintento
 async function scraper(website, retries = 0) {
   const headers = userAgentsfunction();
   try {
-    const { data } = await axios.get(website, { headers, timeout: 20000 }); // Configura un header y un timeout de 5 segundos
+    
+    const { data } = await axios.get(website, {
+      headers,
+      timeout: 20000 }); // Configura un header y un timeout de 5 segundos
     const $ = cheerio.load(data);
 
     let content = {
@@ -366,15 +371,15 @@ async function scraper(website, retries = 0) {
     return content;
 
   } catch (error) {
-    if (retries < maxRetries) {
-      console.log(`Intento ${retries + 1} fallido. Reintentando...`);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2 segundos antes de reintentar
+    if (retries < 3) {
+      console.log(`Reintento ${retries + 1}...`);
+      await new Promise(resolve => setTimeout(resolve, randomDelay(2000, 5000)));
       return scraper(website, retries + 1);
     }
-    console.log(error.message);
     throw error;
   }
 }
+
 
 server.get('/agent/user', async (req, res) => {
   const headers = userAgentsfunction();
@@ -390,16 +395,22 @@ server.get('/agent/user', async (req, res) => {
     console.log(error.message)
   }
 });
+const NodeCache = require('node-cache');
+const myCache = new NodeCache({ stdTTL: 3600 });
 
 server.get('/:id', async (req, res) => {
+  const cp = req.params.id;
+  const cachedContent = myCache.get(cp);
+  if (cachedContent) {
+    return res.status(200).json(cachedContent);
+  }
   try {
-    const cp = req.params.id
     const website = `https://amazon.es/dp/${cp}/`;
     const content = await scraper(website);
+    myCache.set(cp, content);
     res.status(200).json(content);
   } catch (error) {
-    console.error('Error al hacer scraping:', error.message);
-    res.status(500).json({ error: 'Hubo un problema al obtener los datos después de varios intentos.' });
+    res.status(500).json({ error: 'Error al obtener datos' });
   }
 });
 

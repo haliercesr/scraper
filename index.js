@@ -280,8 +280,21 @@ const maxRetries = 5; // Número máximo de reintentos
 // Función para hacer scraping con reintento
 async function scraper(website, retries = 0) {
   const headers = userAgentsfunction();
+//Random ip
+  headers['X-Forwarded-For'] = '192.168.1.' + Math.floor(Math.random() * 256);
+//manejo de cookies
+const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+const tough = require('tough-cookie');
+
+axiosCookieJarSupport(axios);
+const cookieJar = new tough.CookieJar();
+  
   try {
-    const { data } = await axios.get(website, { headers, timeout: 20000 }); // Configura un header y un timeout de 5 segundos
+    await delay(Math.random() * 3000 + 2000);//tiempo random de espera entre solicitud
+    const { data } = await axios.get(website, { headers,
+                                               jar: cookieJar,
+                                                withCredentials: true,
+                                               timeout: 20000 }); // Configura un header y un timeout de 5 segundos
     const $ = cheerio.load(data);
 
     let content = {

@@ -274,7 +274,7 @@ const server = express();
 server.use(cors())
 server.use(logger('dev'));
 
-const PORT = process.env.PORT || 3000;
+//const PORT = 3000;
 const maxRetries = 5; // Número máximo de reintentos
 
 // Función para hacer scraping con reintento

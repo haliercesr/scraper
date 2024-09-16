@@ -1,7 +1,11 @@
 const express = require('express');
 const cheerio = require('cheerio');
 const axios = require('axios');
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms)); // Función para generar retrasos
+const NodeCache = require('node-cache');
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Crear una instancia de NodeCache
+const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // TTL de 1 hora para cada entrada
 
 // Función para rotar User-Agents aleatoriamente
 function getRandomUserAgent() {
@@ -11,7 +15,6 @@ function getRandomUserAgent() {
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.1 Safari/605.1.15',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A5341f Safari/604.1',
     'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
-    // Agrega más User-Agents si es necesario
   ];
   return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
@@ -32,7 +35,6 @@ function userAgentsfunction() {
     'sec-fetch-user': '?1',
     'upgrade-insecure-requests': '1',
     'user-agent': getRandomUserAgent(), // Usamos un User-Agent aleatorio
-    // 'proxy': 'http://proxy-ip:proxy-port' // (Opcional) Si quieres usar proxies rotativos
   };
   return headers;
 }
@@ -41,10 +43,17 @@ const server = express();
 const PORT = process.env.PORT || 3000;
 const maxRetries = 5; // Número máximo de reintentos
 
-// Función para hacer scraping con reintento y retrasos aleatorios
+// Función para hacer scraping con caché y reintento
 async function scraper(website, retries = 0) {
   const headers = userAgentsfunction();
   console.log('Headers being sent:', headers);
+
+  // Verificar si el resultado ya está en caché
+  const cachedContent = cache.get(website);
+  if (cachedContent) {
+    console.log(`Cargando desde caché: ${website}`);
+    return cachedContent;
+  }
 
   try {
     const delayTime = Math.floor(Math.random() * 3000) + 2000; // Retraso aleatorio entre 2 y 5 segundos
@@ -113,6 +122,10 @@ async function scraper(website, retries = 0) {
       }
     }
     content.push({ images: images });
+
+    // Guardar el contenido en caché
+    cache.set(website, content);
+    console.log(`Contenido cacheado para: ${website}`);
 
     return content;
 

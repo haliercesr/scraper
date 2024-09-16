@@ -159,5 +159,3 @@ server.use((req, res, next) => {
   console.log('Incoming request headers:', req.headers);
   next();
 });
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
-});

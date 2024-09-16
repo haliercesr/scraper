@@ -117,6 +117,13 @@ async function scraper(website, retries = 0) {
     return content;
 
   } catch (error) {
+    // Si es un error 404, no reintentar, devolver error directamente
+    if (error.response && error.response.status === 404) {
+      console.log('Página no encontrada (404), no se reintentará.');
+      return { error: 'Página no encontrada (404)' };
+    }
+
+    // Si es otro tipo de error, reintentar
     if (retries < maxRetries) {
       console.log(`Error: ${error.message}. Reintentando (${retries + 1}/${maxRetries})`);
       await delay(3000); // Esperar 3 segundos antes de reintentar
